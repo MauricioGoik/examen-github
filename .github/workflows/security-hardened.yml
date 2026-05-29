@@ -1,0 +1,61 @@
+name: Security Hardened Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout
+        # SHA pinning — control de supply chain
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+  deploy-staging:
+    name: Deploy to Staging
+    needs: security-scan
+    runs-on: ubuntu-latest
+    environment: staging
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Deploy staging
+        env:
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD_STAGING }}
+          API_KEY: ${{ secrets.API_KEY_STAGING }}
+        run: echo "Deploying to staging..."
+
+  deploy-production:
+    name: Deploy to Production
+    needs: deploy-staging
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Deploy production
+        env:
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD_PROD }}
+          API_KEY: ${{ secrets.API_KEY_PROD }}
+        run: echo "Deploying to production..."

@@ -1,0 +1,60 @@
+name: Reusable — Testing
+
+on:
+  workflow_call:
+    inputs:
+      component:
+        required: true
+        type: string
+      node-version:
+        required: false
+        type: string
+        default: '20'
+    outputs:
+      test-result:
+        description: Test result status
+        value: ${{ jobs.test.outputs.result }}
+    secrets:
+      SONAR_TOKEN:
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test ${{ inputs.component }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
+    outputs:
+      result: ${{ steps.run-tests.outputs.result }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: ${{ inputs.component }}
+
+      - name: Run tests
+        id: run-tests
+        run: |
+          npm test
+          echo "result=success" >> $GITHUB_OUTPUT
+        working-directory: ${{ inputs.component }}
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-${{ inputs.component }}
+          path: ${{ inputs.component }}/coverage/
+          retention-days: 7

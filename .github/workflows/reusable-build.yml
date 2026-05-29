@@ -1,0 +1,59 @@
+name: Reusable — Build
+
+on:
+  workflow_call:
+    inputs:
+      component:
+        required: true
+        type: string
+      environment:
+        required: true
+        type: string
+      node-version:
+        required: false
+        type: string
+        default: '20'
+    outputs:
+      image-tag:
+        description: Docker image tag built
+        value: ${{ jobs.build.outputs.image-tag }}
+    secrets:
+      REGISTRY_TOKEN:
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build ${{ inputs.component }} for ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: npm
+
+      - name: Install and build
+        run: |
+          npm ci
+          npm run build
+        working-directory: ${{ inputs.component }}
+        env:
+          NODE_ENV: ${{ inputs.environment }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-${{ inputs.component }}-${{ inputs.environment }}
+          path: ${{ inputs.component }}/dist/
+          retention-days: 1
