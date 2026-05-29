@@ -57,3 +57,12 @@ jobs:
           name: build-${{ inputs.component }}-${{ inputs.environment }}
           path: ${{ inputs.component }}/dist/
           retention-days: 1
+
+      - name: Generate image tags
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/${{ inputs.component }}
+          tags: |
+            type=ref,event=branch
+            type=sha
