@@ -1,0 +1,37 @@
+name: Self-Hosted Runner Strategy
+
+on:
+  workflow_dispatch:
+
+jobs:
+  # Runner específico para builds que requieren hardware dedicado
+  build-heavy:
+    name: Heavy Build (Self-Hosted)
+    runs-on: [self-hosted, linux, x64, high-memory]
+    # Labels usados para segmentación:
+    # - self-hosted: identifica runner propio
+    # - linux: SO del runner
+    # - x64: arquitectura
+    # - high-memory: label custom para runners con RAM extra
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build heavy artifact
+        run: echo "Building on self-hosted runner"
+
+  # Runner para jobs que acceden a red interna corporativa
+  deploy-internal:
+    name: Deploy Internal Network
+    runs-on: [self-hosted, linux, internal-network]
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy to internal systems
+        run: echo "Accessing internal network"
+
+  # Jobs estándar siempre en hosted para aislamiento
+  public-tests:
+    name: Public Tests (GitHub-Hosted)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm test
